@@ -33,7 +33,7 @@ from ._notification_manager import NotificationManager
 from ._settings import Settings
 from .actions import CoreAction, QCoreAction, WidgetAction, WidgetActionInfo
 from .actions._action_info import ActionInfo
-from .widgets._toolbars import OCToolBar
+from .widgets._toolbars import ExposureTimeToolBar, OCToolBar
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -81,6 +81,7 @@ class Toolbar(str, Enum):
 
     CAMERA_ACTIONS = "Camera Actions"
     OPTICAL_CONFIGS = "Optical Configs"
+    EXPOSURE_TIME = "Exposure Time"
     WIDGETS = "Widgets"
     SHUTTERS = "Shutters"
 
@@ -126,6 +127,7 @@ class MicroManagerGUI(QMainWindow):
             CoreAction.TOGGLE_LIVE,
         ],
         Toolbar.OPTICAL_CONFIGS: OCToolBar,
+        Toolbar.EXPOSURE_TIME: ExposureTimeToolBar,
         # Toolbar.SHUTTERS: ShuttersToolbar,
         Toolbar.WIDGETS: [
             WidgetAction.CONSOLE,

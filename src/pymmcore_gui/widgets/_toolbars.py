@@ -6,6 +6,15 @@ from pymmcore_plus import CMMCorePlus, DeviceType
 from pymmcore_widgets import ShuttersWidget
 
 from pymmcore_gui._qt.QtWidgets import QToolBar, QWidget, QWidgetAction
+from pymmcore_gui.widgets._exposure_time_widget import ExposureTimeWidget
+
+
+class ExposureTimeToolBar(QToolBar):
+    """Top toolbar containing the live exposure time control."""
+
+    def __init__(self, mmc: CMMCorePlus, parent: QWidget | None = None) -> None:
+        super().__init__("Exposure Time", parent)
+        self.addWidget(ExposureTimeWidget(mmc, parent=self))
 
 
 class OCToolBar(QToolBar):

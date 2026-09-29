@@ -12,6 +12,7 @@ from pymmcore_gui._qt.QtAds import CDockWidget
 from pymmcore_gui._qt.QtCore import QObject, QTimer, Signal
 from pymmcore_gui._qt.QtWidgets import QWidget
 from pymmcore_gui.widgets.image_preview._ndv_preview import NDVPreview
+from pymmcore_gui.widgets.image_preview._spectrum_plot import SpectrumPlotPreview
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -142,7 +143,10 @@ class NDVViewersManager(QObject):
         """Create or show the image preview widget, return True if created."""
         preview = None
         if self._current_image_preview is None:
-            preview = NDVPreview(mmcore=self._mmc)
+            if self._mmc.getImageHeight() == 1:
+                preview = SpectrumPlotPreview(mmcore=self._mmc)
+            else:
+                preview = NDVPreview(mmcore=self._mmc)
             if not isinstance((parent := self.parent()), QWidget):
                 parent = None  # pragma: no cover
 
@@ -192,12 +196,18 @@ class NDVViewersManager(QObject):
         # if we change any camera property
         if dev == self._mmc.getCameraDevice() or (dev == "Core" and prop == "Camera"):
             if self._current_image_preview:
-                # check if the existing viewer still has a valid shape and dtype
-                # (dtype is actually tuple of (dtype, shape))
-                preview = cast("NDVPreview", self._current_image_preview.widget())
-                if preview._get_core_dtype_shape() != preview.dtype_shape:
-                    preview.detach()
+                preview = self._current_image_preview.widget()
+                is_spectrum = isinstance(preview, SpectrumPlotPreview)
+                if is_spectrum != (self._mmc.getImageHeight() == 1):
+                    if isinstance(preview, (SpectrumPlotPreview, NDVPreview)):
+                        preview.detach()
                     self._current_image_preview = None
+                elif isinstance(preview, NDVPreview):
+                    # Check whether the existing viewer still has a valid shape and
+                    # dtype (dtype is actually a tuple of (dtype, shape)).
+                    if preview._get_core_dtype_shape() != preview.dtype_shape:
+                        preview.detach()
+                        self._current_image_preview = None
 
 
 # ---------------------------------------------------------------------------
