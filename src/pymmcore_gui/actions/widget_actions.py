@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Annotated, TypeVar, cast
+from typing import TYPE_CHECKING, Annotated, Any, TypeVar, cast
 
 import pymmcore_widgets as pmmw
 from pymmcore_plus import CMMCorePlus
@@ -101,15 +101,28 @@ def create_install_widgets(parent: QWidget) -> QDialog:
 
 def create_mda_widget(parent: QWidget) -> pmmw.MDAWidget:
     """Create the MDA widget."""
+    from pymmcore_widgets.mda import _save_widget
+
+    from pymmcore_gui._hdf5_writer import HDF5MDAWriter
+
+    hdf5_format = "hdf5"
+    hdf5_extension = ".h5"
+    # pymmcore-widgets 0.12 exposes its save formats as module-level registries.
+    # Register this app's additional output format before constructing SaveGroupBox.
+    _save_widget.WRITERS.setdefault(hdf5_format, [hdf5_extension])
+    if hdf5_extension not in _save_widget.ALL_EXTENSIONS:
+        _save_widget.ALL_EXTENSIONS.append(hdf5_extension)
+    _save_widget.EXT_TO_WRITER[hdf5_extension] = hdf5_format
 
     class MDAWidget(pmmw.MDAWidget):
-        """MDAWidget subclass: defaults to in-memory output and hides tiff-sequence."""
+        """MDA widget with HDF5 output and in-memory output as the default."""
 
         def __init__(
             self, parent: QWidget | None = None, mmcore: CMMCorePlus | None = None
         ) -> None:
             super().__init__(parent=parent, mmcore=mmcore)
             self._hide_tiff_sequence()
+            self._hdf5_writer: Any = None
 
         def _hide_tiff_sequence(self) -> None:
             """Remove the 'tiff-sequence' option from the save widget's writer combo."""
@@ -124,6 +137,16 @@ def create_mda_widget(parent: QWidget) -> pmmw.MDAWidget:
             if output is None:
                 output = "memory"
             return output
+
+        def execute_mda(self, output: Any) -> None:
+            if (
+                self.save_info.isChecked()
+                and self.save_info.value()["format"] == hdf5_format
+                and output not in (None, "memory")
+            ):
+                self._hdf5_writer = HDF5MDAWriter(output)
+                output = self._hdf5_writer
+            super().execute_mda(output)
 
     return MDAWidget(parent=parent, mmcore=_get_core(parent))
 
