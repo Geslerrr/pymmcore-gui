@@ -25,10 +25,10 @@ class SpectrumPlotPreview(ImagePreviewBase):
         use_with_mda: bool = False,
     ) -> None:
         super().__init__(parent, mmcore, use_with_mda=use_with_mda)
-
-        self.figure = Figure()
+        default_bg_color = 'xkcd:dark grey'
+        self.figure = Figure(facecolor=default_bg_color)
         self.canvas = FigureCanvasQTAgg(self.figure)
-        self.axes = self.figure.add_subplot(111)
+        self.axes = self.figure.add_subplot(111, axisbg=default_bg_color)
         self.axes.set_xlabel("Pixel")
         self.axes.set_ylabel("Intensity")
         self.axes.grid(True, alpha=0.25)
