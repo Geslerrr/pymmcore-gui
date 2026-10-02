@@ -3,21 +3,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-import matplotlib as mpl
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 from pymmcore_gui._qt.QtWidgets import QVBoxLayout, QWidget
+
 from ._preview_base import ImagePreviewBase
 
 if TYPE_CHECKING:
     from pymmcore_plus import CMMCorePlus
 
-COLOR = 'xkcd:light grey'
-mpl.rcParams['text.color'] = COLOR
-mpl.rcParams['axes.labelcolor'] = COLOR
-mpl.rcParams['xtick.color'] = COLOR
-mpl.rcParams['ytick.color'] = COLOR
 
 class SpectrumPlotPreview(ImagePreviewBase):
     """Live line plot preview for a one-row camera such as a spectrometer."""
@@ -33,8 +28,7 @@ class SpectrumPlotPreview(ImagePreviewBase):
         default_bg_color = 'xkcd:dark grey'
         self.figure = Figure(facecolor=default_bg_color)
         self.canvas = FigureCanvasQTAgg(self.figure)
-        self.axes = self.figure.add_subplot(111)
-        self.axes.set_facecolor(default_bg_color)
+        self.axes = self.figure.add_subplot(111, axisbg=default_bg_color)
         self.axes.set_xlabel("Pixel")
         self.axes.set_ylabel("Intensity")
         self.axes.grid(True, alpha=0.25)
