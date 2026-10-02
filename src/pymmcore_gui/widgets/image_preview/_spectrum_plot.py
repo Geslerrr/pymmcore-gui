@@ -33,6 +33,8 @@ class SpectrumPlotPreview(ImagePreviewBase):
         self.axes.set_ylabel("Intensity")
         self.axes.grid(True, alpha=0.25)
         (self._line,) = self.axes.plot([], [])
+        self._wavelengths: np.ndarray | None = None
+        self._refresh_wavelengths()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -46,8 +48,54 @@ class SpectrumPlotPreview(ImagePreviewBase):
         elif row.ndim > 1:
             row = row[0].reshape(-1)
 
-        pixels = np.arange(row.size)
-        self._line.set_data(pixels, row)
+        x = self._x_axis(row.size)
+        self._line.set_data(x, row)
+        calibrated = self._wavelengths is not None and self._wavelengths.size == row.size
+        self.axes.set_xlabel("Wavelength (nm)" if calibrated else "Pixel")
         self.axes.relim()
         self.axes.autoscale_view()
         self.canvas.draw_idle()
+
+    def _x_axis(self, size: int) -> np.ndarray:
+        if self._wavelengths is not None and self._wavelengths.size == size:
+            return self._wavelengths
+        return np.arange(size)
+
+    def _refresh_wavelengths(self) -> None:
+        """Read the CCS100 wavelength calibration when it is exposed as a property."""
+        core = self._mmc
+        self._wavelengths = None
+        if core is None:
+            return
+        try:
+            camera = str(core.getCameraDevice())
+            if "ccs100" not in camera.casefold():
+                return
+            property_names = core.getDevicePropertyNames(camera)
+            property_name = next(
+                (
+                    name
+                    for name in property_names
+                    if str(name).casefold() in {"wavelengths", "wavelenghts"}
+                ),
+                None,
+            )
+            if property_name is None:
+                return
+            raw = str(core.getProperty(camera, property_name))
+            values = np.fromstring(raw.replace(";", ","), sep=",")
+            if values.size and np.all(np.isfinite(values)):
+                self._wavelengths = values
+        except Exception:
+            # Calibration is optional; continue plotting against detector pixels.
+            return
+
+    def _on_system_config_loaded(self) -> None:
+        self._refresh_wavelengths()
+
+    def _on_property_changed(self, dev: str, prop: str, value: str) -> None:
+        if "ccs100" in dev.casefold() and prop.casefold() in {
+            "wavelengths",
+            "wavelenghts",
+        }:
+            self._refresh_wavelengths()
