@@ -221,6 +221,159 @@ class HDF5MDAWriter:
             self._records = None
 
 
+class HDF5PLMapWriter:
+    """Write a nested Sample XY / Spectro XY spectral map to HDF5."""
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        sample_x_um: np.ndarray,
+        sample_y_um: np.ndarray,
+        spectro_x_um: np.ndarray,
+        spectro_y_um: np.ndarray,
+        sequence: MDASequence,
+        metadata: dict[str, Any],
+    ) -> None:
+        self.path = Path(path)
+        self.sample_x_um = np.asarray(sample_x_um, dtype=np.float64)
+        self.sample_y_um = np.asarray(sample_y_um, dtype=np.float64)
+        self.spectro_x_um = np.asarray(spectro_x_um, dtype=np.float64)
+        self.spectro_y_um = np.asarray(spectro_y_um, dtype=np.float64)
+        self.sequence = sequence
+        self.metadata = metadata
+        self._file: h5py.File | None = None
+        self._data: h5py.Dataset | None = None
+        self._valid: h5py.Dataset | None = None
+        self._records: h5py.Dataset | None = None
+        self._wavelengths: np.ndarray | None = None
+
+    def start(self, first_spectrum: np.ndarray, wavelengths: np.ndarray | None) -> None:
+        """Create map datasets using the first acquired spectrum's dtype."""
+        spectrum = _spectrum_vector(first_spectrum)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        h5_file = h5py.File(self.path, "x")
+        self._file = h5_file
+        self._wavelengths = wavelengths
+        entry = h5_file.create_group("entry")
+        entry.attrs["schema"] = "pymmcore-gui-mda-hdf5"
+        entry.attrs["schema_version"] = "1.0"
+        entry.attrs["status"] = "acquiring"
+        metadata_group = entry.create_group("metadata")
+        metadata_group.create_dataset(
+            "summary_json",
+            data=json.dumps(self.metadata, default=_json_default),
+            dtype=h5py.string_dtype("utf-8"),
+        )
+        metadata_group.create_dataset(
+            "useq_sequence_json",
+            data=json.dumps(
+                self.sequence.model_dump(mode="json"), default=_json_default
+            ),
+            dtype=h5py.string_dtype("utf-8"),
+        )
+        self._records = metadata_group.create_dataset(
+            "frame_records",
+            shape=(0,),
+            maxshape=(None,),
+            chunks=(128,),
+            dtype=h5py.string_dtype("utf-8"),
+        )
+        data_group = entry.create_group("data")
+        shape = (
+            self.sample_y_um.size,
+            self.sample_x_um.size,
+            self.spectro_y_um.size,
+            self.spectro_x_um.size,
+            spectrum.size,
+        )
+        data = data_group.create_dataset(
+            "spectra",
+            shape=shape,
+            dtype=spectrum.dtype,
+            chunks=(1, 1, 1, 1, spectrum.size),
+            fillvalue=0,
+        )
+        self._data = data
+        data.attrs["axes"] = json.dumps(
+            ["sample_y", "sample_x", "spectro_y", "spectro_x", "pixel"]
+        )
+        self._valid = data_group.create_dataset(
+            "valid",
+            shape=shape[:-1],
+            dtype=np.bool_,
+            chunks=(1, 1, 1, 1),
+            fillvalue=False,
+        )
+        axes = entry.create_group("axes")
+        for name, coords in (
+            ("sample_x_um", self.sample_x_um),
+            ("sample_y_um", self.sample_y_um),
+            ("spectro_x_um", self.spectro_x_um),
+            ("spectro_y_um", self.spectro_y_um),
+        ):
+            dataset = axes.create_dataset(name, data=coords)
+            dataset.attrs["units"] = "um"
+        pixel = axes.create_dataset(
+            "pixel", data=np.arange(spectrum.size, dtype=np.uint32)
+        )
+        pixel.attrs["units"] = "pixel"
+        if wavelengths is not None and wavelengths.size == spectrum.size:
+            wavelength_axis = axes.create_dataset("wavelength_nm", data=wavelengths)
+            wavelength_axis.attrs["units"] = "nm"
+
+    def write(
+        self,
+        spectrum: np.ndarray,
+        *,
+        sample_index: tuple[int, int],
+        spectro_index: tuple[int, int],
+        sample_position: tuple[float, float],
+        spectro_position: tuple[float, float],
+        event: MDAEvent,
+    ) -> None:
+        """Write a spectrum and its dual-stage coordinates."""
+        if self._data is None or self._valid is None or self._records is None:
+            raise RuntimeError("PL map writer has not been started")
+        vector = _spectrum_vector(spectrum)
+        index = (*sample_index, *spectro_index)
+        self._data[index] = vector
+        self._valid[index] = True
+        record = {
+            "index": dict(event.index),
+            "event": event,
+            "sample_position_um": sample_position,
+            "spectro_position_um": spectro_position,
+        }
+        self._records.resize((len(self._records) + 1,))
+        self._records[-1] = json.dumps(record, default=_json_default)
+
+    def close(self, status: str = "complete", error: str | None = None) -> None:
+        """Flush and close the map file with its final acquisition status."""
+        if self._file is None:
+            return
+        if "entry" in self._file:
+            self._file["entry"].attrs["status"] = status
+            if error:
+                self._file["entry"].attrs["error"] = error
+        self._file.flush()
+        self._file.close()
+        self._file = None
+        self._data = None
+        self._valid = None
+        self._records = None
+
+
+def _spectrum_vector(image: np.ndarray) -> np.ndarray:
+    """Validate and flatten a single-row spectrometer image."""
+    array = np.asarray(image)
+    if array.ndim == 2 and array.shape[0] == 1:
+        return array[0]
+    if array.ndim == 1:
+        return array
+    raise ValueError(f"Expected a one-row spectrum; received image shape {array.shape}")
+
+
 def _json_default(value: Any) -> Any:
     """Convert common NumPy and useq metadata values to JSON-compatible values."""
     if hasattr(value, "model_dump"):

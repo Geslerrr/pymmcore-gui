@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-import csv
-
-from pymmcore_gui._qt.QtWidgets import QVBoxLayout, QWidget
+from pymmcore_gui._qt.QtWidgets import (
+    QFileDialog,
+    QHBoxLayout,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 from ._preview_base import ImagePreviewBase
 
 if TYPE_CHECKING:
@@ -46,6 +51,13 @@ class SpectrumPlotPreview(ImagePreviewBase):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.canvas)
+        controls = QHBoxLayout()
+        controls.addStretch()
+        self._save_button = QPushButton("Save spectrum…", self)
+        self._save_button.setEnabled(False)
+        self._save_button.clicked.connect(self._save_spectrum)
+        controls.addWidget(self._save_button)
+        layout.addLayout(controls)
 
     def append(self, data: np.ndarray) -> None:
         """Plot the intensity values from one CCD row."""
@@ -57,6 +69,7 @@ class SpectrumPlotPreview(ImagePreviewBase):
 
         x = self._x_axis(row.size)
         self._line.set_data(x, row)
+        self._save_button.setEnabled(True)
         calibrated = self._wavelengths is not None and self._wavelengths.size == row.size
         self.axes.set_xlabel("Wavelength (nm)" if calibrated else "Pixel")
         self.axes.relim()
@@ -79,13 +92,48 @@ class SpectrumPlotPreview(ImagePreviewBase):
             if "ccs100" not in camera.casefold():
                 return
 
-            values = np.fromstring(open("wvl_cal.csv", "r", encoding="utf-8"))
-            print(values)
+            calibration_path = Path(__file__).with_name("wvl_cal.csv")
+            values = np.loadtxt(calibration_path, delimiter=",")
+            values = np.atleast_1d(values)
             if values.size and np.all(np.isfinite(values)):
                 self._wavelengths = values
         except Exception:
             # Calibration is optional; continue plotting against detector pixels.
             return
+
+    def _save_spectrum(self) -> None:
+        """Save the currently displayed spectrum as CSV data or a PNG plot."""
+        filters = "CSV files (*.csv);;PNG images (*.png)"
+        path, selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Save spectrum",
+            "spectrum.csv",
+            filters,
+        )
+        if not path:
+            return
+
+        extension = ".png" if "PNG" in selected_filter else ".csv"
+        destination = Path(path)
+        if destination.suffix.casefold() != extension:
+            destination = destination.with_suffix(extension)
+
+        if extension == ".png":
+            self.figure.savefig(
+                destination, format="png", facecolor=self.figure.get_facecolor()
+            )
+            return
+
+        x, intensity = self._line.get_data()
+        x_label = self.axes.get_xlabel()
+        x_header = "wavelength_nm" if x_label == "Wavelength (nm)" else "pixel"
+        np.savetxt(
+            destination,
+            np.column_stack((x, intensity)),
+            delimiter=",",
+            header=f"{x_header},intensity",
+            comments="",
+        )
 
     def _on_system_config_loaded(self) -> None:
         self._refresh_wavelengths()

@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from pymmcore_gui._qt.QtCore import QObject
     from pymmcore_gui.widgets._exception_log import ExceptionLog
     from pymmcore_gui.widgets._mm_console import MMConsole
+    from pymmcore_gui.widgets._pl_mapping import PLMappingWidget
     from pymmcore_gui.widgets._stage_control import StagesControlWidget
 
 QWidgetType = Annotated[QWidget, _ensure_isinstance(QWidget)]
@@ -43,6 +44,7 @@ class WidgetAction(ActionKey):
     EXCEPTION_LOG = "pymmcore_gui.exception_log"
     STAGE_CONTROL = "pymmcore_gui.stage_control_widget"
     STAGE_EXPLORER = "pymmcore_gui.stage_explorer_widget"
+    PL_MAPPING = "pymmcore_gui.pl_mapping_widget"
     CONFIG_WIZARD = "pymmcore_gui.hardware_config_wizard"
 
 
@@ -220,6 +222,13 @@ def create_stage_explorer_widget(parent: QWidget) -> pmmw.StageExplorer:
     return StageExplorer(parent=parent, mmcore=_get_core(parent))
 
 
+def create_pl_mapping_widget(parent: QWidget) -> PLMappingWidget:
+    """Create the PL spectral mapping widget."""
+    from pymmcore_gui.widgets._pl_mapping import PLMappingWidget
+
+    return PLMappingWidget(parent=parent, mmcore=_get_core(parent))
+
+
 # ######################## WidgetAction Enum #########################
 
 
@@ -341,4 +350,13 @@ stage_explorer_widget = WidgetActionInfo(
     create_widget=create_stage_explorer_widget,
     dock_area=DockWidgetArea.LeftDockWidgetArea,
     floatable=False,
+)
+
+show_pl_mapping = WidgetActionInfo(
+    key=WidgetAction.PL_MAPPING,
+    text="PL Mapping",
+    shortcut="Ctrl+Shift+L",
+    icon="mdi-light:grid",
+    create_widget=create_pl_mapping_widget,
+    dock_area=DockWidgetArea.LeftDockWidgetArea,
 )

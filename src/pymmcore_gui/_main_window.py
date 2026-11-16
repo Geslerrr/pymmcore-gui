@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     from pymmcore_gui.widgets._about_widget import AboutWidget
     from pymmcore_gui.widgets._exception_log import ExceptionLog
     from pymmcore_gui.widgets._mm_console import MMConsole
+    from pymmcore_gui.widgets._pl_mapping import PLMappingWidget
     from pymmcore_gui.widgets._stage_control import StagesControlWidget
 
     from ._app import MMQApplication
@@ -144,6 +145,7 @@ class MicroManagerGUI(QMainWindow):
             WidgetAction.MDA_WIDGET,
             WidgetAction.STAGE_CONTROL,
             WidgetAction.CAMERA_ROI,
+            WidgetAction.PL_MAPPING,
         ],
     }
     # Menus are a mapping of strings to either a list of ActionKeys or a callable
@@ -327,6 +329,8 @@ class MicroManagerGUI(QMainWindow):
     def get_widget(self, key: Literal[WidgetAction.PROP_BROWSER], create: bool = ...) -> PropertyBrowser: ...  # noqa: E501
     @overload
     def get_widget(self, key: Literal[WidgetAction.STAGE_CONTROL], create: bool = ...) -> StagesControlWidget: ...  # noqa: E501
+    @overload
+    def get_widget(self, key: Literal[WidgetAction.PL_MAPPING], create: bool = ...) -> PLMappingWidget: ...  # noqa: E501
     # generic fallback
     @overload
     def get_widget(self, key: str, create: bool = ...) -> QWidget: ...

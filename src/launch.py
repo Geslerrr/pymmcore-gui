@@ -4,9 +4,14 @@ from pymmcore_plus import CMMCorePlus
 mmcore1=CMMCorePlus.instance()
 
 print("Loading configuration")
-create_mmgui(mm_config=r"D:\Aplikacje\MicroPLController\tests\cg_09-2026_V9_spectro.cfg")
+try:
+    create_mmgui(mm_config=r"D:\Aplikacje\MicroPLController\tests\cg_09-2026_V9_spectro.cfg")
+except Exception as e:
+    print(e)
+    print("Failed to load configuration, loading demo configuration")
+    create_mmgui()
 
-print("Urządzenia:")
+print("Devices:")
 for label in mmcore1.getLoadedDevices():
     print(repr(label), mmcore1.getDeviceType(label))
 
