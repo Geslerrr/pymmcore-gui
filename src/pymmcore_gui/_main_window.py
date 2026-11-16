@@ -34,6 +34,8 @@ from ._settings import Settings
 from .actions import CoreAction, QCoreAction, WidgetAction, WidgetActionInfo
 from .actions._action_info import ActionInfo
 from .widgets._toolbars import ExposureTimeToolBar, OCToolBar
+from .widgets._custom_menu import CustomMenu
+from .widgets._custom_log import CustomLog
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -71,6 +73,7 @@ class Menu(str, Enum):
     WINDOW = "Window"
     DEVICE = "Devices"
     HELP = "Help"
+    CUSTOM = "Custom"
 
     def __str__(self) -> str:
         return str(self.value)
@@ -113,6 +116,12 @@ def _create_window_menu(mmc: CMMCorePlus, parent: MicroManagerGUI) -> QMenu:
     menu = QMenu(Menu.WINDOW.value, parent)
     for action in sorted(parentless_actions):
         menu.addAction(parent.get_action(action))
+
+    # Add custom log windows
+    menu.addSeparator()
+    log_action = menu.addAction("Custom Log")
+    log_action.triggered.connect(parent.show_custom_log)
+
     return menu
 
 
@@ -153,6 +162,7 @@ class MicroManagerGUI(QMainWindow):
             WidgetAction.INSTALL_DEVICES,
         ],
         Menu.HELP: [],
+        Menu.CUSTOM: CustomMenu,
     }
 
     def __init__(self, *, mmcore: CMMCorePlus | None = None) -> None:
@@ -160,6 +170,9 @@ class MicroManagerGUI(QMainWindow):
         self.setWindowTitle("pyMM")
         self.setWindowIcon(QIcon(str(ICON)))
         self.setObjectName("MicroManagerGUI")
+
+        self._custom_log = CustomLog(self)
+
 
         # Serves to cache created QAction objects so that they can be re-used
         # when the same action is requested multiple times. This is useful to
@@ -252,6 +265,9 @@ class MicroManagerGUI(QMainWindow):
         _gl.close()
 
     # --------------------- Properties ----------------------
+    @property
+    def custom_log(self) -> CustomLog:
+        return self._custom_log
 
     @property
     def nm(self) -> NotificationManager:
@@ -264,6 +280,11 @@ class MicroManagerGUI(QMainWindow):
 
     # --------------------- Public methods ----------------------
     # -----------------------------------------------------------
+
+    def show_custom_log(self):
+        self._custom_log.show()
+        self._custom_log.raise_()
+        self._custom_log.activateWindow()
 
     def get_action(self, key: str, create: bool = True) -> QAction:
         """Create a QAction from this key."""

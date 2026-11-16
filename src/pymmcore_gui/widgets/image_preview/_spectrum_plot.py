@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib as mpl
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+import csv
 
 from pymmcore_gui._qt.QtWidgets import QVBoxLayout, QWidget
 from ._preview_base import ImagePreviewBase
@@ -77,19 +78,9 @@ class SpectrumPlotPreview(ImagePreviewBase):
             camera = str(core.getCameraDevice())
             if "ccs100" not in camera.casefold():
                 return
-            property_names = core.getDevicePropertyNames(camera)
-            property_name = next(
-                (
-                    name
-                    for name in property_names
-                    if str(name).casefold() in {"wavelengths", "wavelenghts"}
-                ),
-                None,
-            )
-            if property_name is None:
-                return
-            raw = str(core.getProperty(camera, property_name))
-            values = np.fromstring(raw.replace(";", ","), sep=",")
+
+            values = np.fromstring(open("wvl_cal.csv", "r", encoding="utf-8"))
+            print(values)
             if values.size and np.all(np.isfinite(values)):
                 self._wavelengths = values
         except Exception:
@@ -100,8 +91,5 @@ class SpectrumPlotPreview(ImagePreviewBase):
         self._refresh_wavelengths()
 
     def _on_property_changed(self, dev: str, prop: str, value: str) -> None:
-        if "ccs100" in dev.casefold() and prop.casefold() in {
-            "wavelengths",
-            "wavelenghts",
-        }:
+        if "ccs100" in dev.casefold():
             self._refresh_wavelengths()
