@@ -33,7 +33,7 @@ class SpectrumPlotPreview(ImagePreviewBase):
         mmcore: CMMCorePlus,
         parent: QWidget | None = None,
         *,
-        use_with_mda: bool = False,
+        use_with_mda: bool = True,
     ) -> None:
         super().__init__(parent, mmcore, use_with_mda=use_with_mda)
         default_bg_color = 'xkcd:dark grey'
@@ -46,7 +46,7 @@ class SpectrumPlotPreview(ImagePreviewBase):
         self.axes.grid(True, alpha=0.25)
         (self._line,) = self.axes.plot([], [])
         self._wavelengths: np.ndarray | None = None
-        self._refresh_wavelengths()
+        self._load_wavelengths()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -81,24 +81,20 @@ class SpectrumPlotPreview(ImagePreviewBase):
             return self._wavelengths
         return np.arange(size)
 
-    def _refresh_wavelengths(self) -> None:
+    def _load_wavelengths(self) -> None:
         """Read the CCS100 wavelength calibration when it is exposed as a property."""
         core = self._mmc
         self._wavelengths = None
         if core is None:
             return
         try:
-            camera = str(core.getCameraDevice())
-            if "ccs100" not in camera.casefold():
-                return
-
-            calibration_path = Path(__file__).with_name("wvl_cal.csv")
-            values = np.loadtxt(calibration_path, delimiter=",")
+            calibration_path = "wvl_cal.csv"
+            values = np.loadtxt(calibration_path, delimiter=",", max_rows=3648)
             values = np.atleast_1d(values)
             if values.size and np.all(np.isfinite(values)):
                 self._wavelengths = values
         except Exception:
-            # Calibration is optional; continue plotting against detector pixels.
+            breakpoint("Problem reading csv wavelength calibration file")
             return
 
     def _save_spectrum(self) -> None:
@@ -136,8 +132,9 @@ class SpectrumPlotPreview(ImagePreviewBase):
         )
 
     def _on_system_config_loaded(self) -> None:
-        self._refresh_wavelengths()
+        self._load_wavelengths()
 
     def _on_property_changed(self, dev: str, prop: str, value: str) -> None:
         if "ccs100" in dev.casefold():
-            self._refresh_wavelengths()
+            self._load_wavelengths()
+
