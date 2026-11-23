@@ -7,7 +7,20 @@ from pymmcore_widgets import ShuttersWidget
 
 from pymmcore_gui._qt.QtWidgets import QToolBar, QWidget, QWidgetAction
 from pymmcore_gui.widgets._exposure_time_widget import ExposureTimeWidget
+from pymmcore_gui.widgets._save_image_widget import SaveImageWidget
 
+
+class SaveImageToolBar(QToolBar):
+    def __init__(
+        self,
+        mmc: CMMCorePlus,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__("Save Image", parent)
+
+        self.addWidget(
+            SaveImageWidget(mmc, parent=self)
+        )
 
 class ExposureTimeToolBar(QToolBar):
     """Top toolbar containing the live exposure time control."""

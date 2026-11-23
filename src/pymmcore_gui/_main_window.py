@@ -33,7 +33,7 @@ from ._notification_manager import NotificationManager
 from ._settings import Settings
 from .actions import CoreAction, QCoreAction, WidgetAction, WidgetActionInfo
 from .actions._action_info import ActionInfo
-from .widgets._toolbars import ExposureTimeToolBar, OCToolBar
+from .widgets._toolbars import ExposureTimeToolBar, OCToolBar, SaveImageToolBar
 from .widgets._custom_menu import CustomMenu
 from .widgets._custom_log import CustomLog
 
@@ -86,6 +86,7 @@ class Toolbar(str, Enum):
     CAMERA_ACTIONS = "Camera Actions"
     OPTICAL_CONFIGS = "Optical Configs"
     EXPOSURE_TIME = "Exposure Time"
+    SAVE_IMAGE = "Save Image"
     WIDGETS = "Widgets"
     SHUTTERS = "Shutters"
 
@@ -138,6 +139,7 @@ class MicroManagerGUI(QMainWindow):
         ],
         Toolbar.OPTICAL_CONFIGS: OCToolBar,
         Toolbar.EXPOSURE_TIME: ExposureTimeToolBar,
+        Toolbar.SAVE_IMAGE: SaveImageToolBar,
         # Toolbar.SHUTTERS: ShuttersToolbar,
         Toolbar.WIDGETS: [
             WidgetAction.CONSOLE,

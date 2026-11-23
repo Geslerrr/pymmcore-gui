@@ -3312,6 +3312,7 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "ome-writers", extra = ["tensorstore", "tifffile"] },
+    { name = "pillow" },
     { name = "pydantic-settings" },
     { name = "pymmcore-plus", extra = ["cli"] },
     { name = "pymmcore-widgets" },
@@ -3322,6 +3323,8 @@ dependencies = [
     { name = "rich" },
     { name = "sentry-sdk" },
     { name = "superqt", extra = ["cmap", "iconify"] },
+    { name = "tifffile", version = "2025.5.10", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "tifffile", version = "2026.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "tqdm" },
 ]
 
@@ -3366,6 +3369,7 @@ requires-dist = [
     { name = "ndv", extras = ["vispy"], specifier = ">=0.5.0rc4" },
     { name = "numpy", specifier = ">=2.2.6" },
     { name = "ome-writers", extras = ["tensorstore", "tifffile"], specifier = ">=0.3.0" },
+    { name = "pillow", specifier = ">=12.3.0" },
     { name = "pydantic-settings", specifier = ">=2.7.1" },
     { name = "pymmcore-plus", extras = ["cli"], specifier = ">=0.18.0" },
     { name = "pymmcore-widgets", specifier = ">=0.12.0" },
@@ -3376,6 +3380,7 @@ requires-dist = [
     { name = "rich" },
     { name = "sentry-sdk", specifier = ">=2.20.0" },
     { name = "superqt", extras = ["cmap", "iconify"], specifier = ">=0.7.1" },
+    { name = "tifffile", specifier = ">=2025.5.10" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
 

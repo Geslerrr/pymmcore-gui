@@ -92,7 +92,7 @@ class SpectrumPlotPreview(ImagePreviewBase):
             if "ccs100" not in camera.casefold():
                 return
 
-            calibration_path = Path(__file__).with_name("wvl_cal.csv")
+            calibration_path = "wvl_cal.csv"
             values = np.loadtxt(calibration_path, delimiter=",")
             values = np.atleast_1d(values)
             if values.size and np.all(np.isfinite(values)):
